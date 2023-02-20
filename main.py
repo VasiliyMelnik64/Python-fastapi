@@ -70,12 +70,12 @@ app = FastAPI()
 
 
 @app.get('/hotels')
-def get_all_hotels() -> Dict[str, List[Dict[str, str | int | bool]]]:
+def get_all_hotels() -> Dict[str, List[Dict]]:
     return {"data": hotels}
 
 
 @app.get('/hotels/{id}')
-def get_hotel_details(id: int) -> Dict[str, str | int | bool] | None:
+def get_hotel_details(id: int) -> Dict | None:
     found_hotel_idx = Hotel.find_hotel_idx(id)
 
     if found_hotel_idx == None:
@@ -90,6 +90,21 @@ def add_hotel(hotel: Hotel) -> Dict[str, dict]:
     added_hotel = hotel.add_hotel('Test')
 
     return {"data": added_hotel}
+
+
+@app.put("/hotels/{id}", status_code=status.HTTP_200_OK)
+def update_hotel_info(id: int, hotel: Hotel) -> Dict[str, Dict]:
+    found_hotel_idx = Hotel.find_hotel_idx(id)
+
+    if found_hotel_idx == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Hotel with id {id} not found")
+
+    updated_hotel = hotel.dict()
+    hotels[found_hotel_idx] = updated_hotel
+    updated_hotel["id"] = id
+
+    return {"data": updated_hotel}
 
 
 @app.delete('/hotels/{id}', status_code=status.HTTP_204_NO_CONTENT)
