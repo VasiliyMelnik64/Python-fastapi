@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel
 from random import randrange
 
@@ -47,19 +47,21 @@ class Hotel(BaseModel):
         return added_hotel
 
     @staticmethod
-    def find_hotel(id: int) -> Dict[str, str | int | bool] | None:
-        for hotel in hotels:
+    def find_hotel_idx(id: int) -> int | None:
+        for i, hotel in enumerate(hotels):
             if hotel['id'] == id:
-                return hotel
+                return i
 
         return None
 
     @staticmethod
     def delete_hotel(id: int) -> Dict[str, str | int | bool] | None:
-        for hotel in hotels:
-            if hotel['id'] == id:
-                hotels.remove(hotel)
-                return hotel
+        deleted_hotel_idx = Hotel.find_hotel_idx(id)
+
+        if deleted_hotel_idx != None:
+            deleted_hotel = hotels.pop(deleted_hotel_idx)
+
+            return deleted_hotel
 
         return None
 
@@ -74,20 +76,28 @@ def get_all_hotels() -> Dict[str, List[Dict[str, str | int | bool]]]:
 
 @app.get('/hotels/{id}')
 def get_hotel_details(id: int) -> Dict[str, str | int | bool] | None:
-    found_hotel = Hotel.find_hotel(id)
+    found_hotel_idx = Hotel.find_hotel_idx(id)
 
-    return found_hotel
+    if found_hotel_idx == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Hotel with id {id} not found")
+
+    return hotels[found_hotel_idx]
 
 
-@app.post("/hotels")
+@app.post("/hotels", status_code=status.HTTP_201_CREATED)
 def add_hotel(hotel: Hotel) -> Dict[str, dict]:
     added_hotel = hotel.add_hotel('Test')
 
     return {"data": added_hotel}
 
 
-@app.delete('/hotels/{id}')
-def delete_hotel(id: int) -> Dict[str, str | int | bool] | None:
+@app.delete('/hotels/{id}', status_code=status.HTTP_204_NO_CONTENT)
+def delete_hotel(id: int) -> Response:
     deleted_hotel = Hotel.delete_hotel(id)
 
-    return deleted_hotel
+    if not deleted_hotel:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Hotel with id {id} not found")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
