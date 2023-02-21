@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel
 from random import randrange
 
-hotels = [
+hotels_data = [
     {
         "id": 1,
         "title": "Mercure hotel",
@@ -42,13 +42,13 @@ class Hotel(BaseModel):
         added_hotel = self.dict()
         added_hotel["id"] = randrange(0, 1000000)
         added_hotel["data"] = data
-        hotels.append(added_hotel)
+        hotels_data.append(added_hotel)
 
         return added_hotel
 
     @staticmethod
     def find_hotel_idx(id: int) -> int | None:
-        for i, hotel in enumerate(hotels):
+        for i, hotel in enumerate(hotels_data):
             if hotel['id'] == id:
                 return i
 
@@ -59,11 +59,24 @@ class Hotel(BaseModel):
         deleted_hotel_idx = Hotel.find_hotel_idx(id)
 
         if deleted_hotel_idx != None:
-            deleted_hotel = hotels.pop(deleted_hotel_idx)
+            deleted_hotel = hotels_data.pop(deleted_hotel_idx)
 
             return deleted_hotel
 
         return None
+
+    @staticmethod
+    def get_data():
+        return hotels_data
+
+    @staticmethod
+    def update_hotel(id, hotel, idx):
+        updated_hotel = hotel.dict()
+        hotels = Hotel.get_data()
+        hotels[idx] = updated_hotel
+        updated_hotel["id"] = id
+
+        return updated_hotel
 
 
 app = FastAPI()
@@ -71,6 +84,8 @@ app = FastAPI()
 
 @app.get('/hotels')
 def get_all_hotels() -> Dict[str, List[Dict]]:
+    hotels = Hotel.get_data()
+
     return {"data": hotels}
 
 
@@ -81,6 +96,8 @@ def get_hotel_details(id: int) -> Dict | None:
     if found_hotel_idx == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Hotel with id {id} not found")
+
+    hotels = Hotel.get_data()
 
     return hotels[found_hotel_idx]
 
@@ -100,9 +117,7 @@ def update_hotel_info(id: int, hotel: Hotel) -> Dict[str, Dict]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Hotel with id {id} not found")
 
-    updated_hotel = hotel.dict()
-    hotels[found_hotel_idx] = updated_hotel
-    updated_hotel["id"] = id
+    updated_hotel = Hotel.update_hotel(id, hotel, found_hotel_idx)
 
     return {"data": updated_hotel}
 
