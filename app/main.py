@@ -46,6 +46,8 @@ class Hotel(BaseModel):
 
         return added_hotel
 
+
+class HotelService:
     @staticmethod
     def find_hotel_idx(id: int) -> int | None:
         for i, hotel in enumerate(hotels_data):
@@ -56,7 +58,7 @@ class Hotel(BaseModel):
 
     @staticmethod
     def delete_hotel(id: int) -> Dict[str, str | int | bool] | None:
-        deleted_hotel_idx = Hotel.find_hotel_idx(id)
+        deleted_hotel_idx = HotelService.find_hotel_idx(id)
 
         if deleted_hotel_idx != None:
             deleted_hotel = hotels_data.pop(deleted_hotel_idx)
@@ -72,7 +74,7 @@ class Hotel(BaseModel):
     @staticmethod
     def update_hotel(id, hotel, idx):
         updated_hotel = hotel.dict()
-        hotels = Hotel.get_data()
+        hotels = HotelService.get_data()
         hotels[idx] = updated_hotel
         updated_hotel["id"] = id
 
@@ -84,20 +86,20 @@ app = FastAPI()
 
 @app.get('/hotels')
 def get_all_hotels() -> Dict[str, List[Dict]]:
-    hotels = Hotel.get_data()
+    hotels = HotelService.get_data()
 
     return {"data": hotels}
 
 
 @app.get('/hotels/{id}')
 def get_hotel_details(id: int) -> Dict | None:
-    found_hotel_idx = Hotel.find_hotel_idx(id)
+    found_hotel_idx = HotelService.find_hotel_idx(id)
 
     if found_hotel_idx == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Hotel with id {id} not found")
 
-    hotels = Hotel.get_data()
+    hotels = HotelService.get_data()
 
     return hotels[found_hotel_idx]
 
@@ -111,20 +113,20 @@ def add_hotel(hotel: Hotel) -> Dict[str, dict]:
 
 @app.put("/hotels/{id}", status_code=status.HTTP_200_OK)
 def update_hotel_info(id: int, hotel: Hotel) -> Dict[str, Dict]:
-    found_hotel_idx = Hotel.find_hotel_idx(id)
+    found_hotel_idx = HotelService.find_hotel_idx(id)
 
     if found_hotel_idx == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Hotel with id {id} not found")
 
-    updated_hotel = Hotel.update_hotel(id, hotel, found_hotel_idx)
+    updated_hotel = HotelService.update_hotel(id, hotel, found_hotel_idx)
 
     return {"data": updated_hotel}
 
 
 @app.delete('/hotels/{id}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_hotel(id: int) -> Response:
-    deleted_hotel = Hotel.delete_hotel(id)
+    deleted_hotel = HotelService.delete_hotel(id)
 
     if not deleted_hotel:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
